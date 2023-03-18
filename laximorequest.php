@@ -2,22 +2,21 @@
 
 /**
  * @author Vladimir Prisada
- * @email 0nua@mail.ru
- * @email vladimir-prisada@yandex.ru
- * Class LaximoRequest - обертка над requestOEM библиотекой
- * @method appendGetCatalogInfo() appendGetCatalogInfo() Данные каталога
- * @method appendFindVehicleByVIN() appendFindVehicleByVIN(string $vin) Поиск автомобиля по VIN-номеру
- * @method appendListCategories() appendListCategories(int $vehicle_id, int $category_id) Получаем список категорий запчастей
- * @method appendListUnits() appendListUnits(int $vehicle_id, int $category_id) Список юнитов в категории
+ * @email vladimir.prisada@gmail.com
+ * Class LaximoRequest
+ * @method appendGetCatalogInfo() appendGetCatalogInfo()
+ * @method appendFindVehicleByVIN() appendFindVehicleByVIN(string $vin)
+ * @method appendListCategories() appendListCategories(int $vehicle_id, int $category_id)
+ * @method appendListUnits() appendListUnits(int $vehicle_id, int $category_id)
  * @method appendListQuickGroup() appendListQuickGroup(int $vehicle_id)
- * @method appendListDetailByUnit() appendListDetailByUnit(int $unit_id) Получаем список агрегатов юнита
- * @method appendListQuickDetail() appendListQuickDetail (int $vehicle_id, int $group_id) Получаем данные группы
+ * @method appendListDetailByUnit() appendListDetailByUnit(int $unit_id)
+ * @method appendListQuickDetail() appendListQuickDetail (int $vehicle_id, int $group_id)
  */
 
 class LaximoRequest {
 
     private $_requestOEM;
-    private $_pool = array(); //Пул запросов к сервису Laximo
+    private $_pool = array();
 
     private static $_config = [
         'catalog_code' => '',
@@ -25,7 +24,6 @@ class LaximoRequest {
     ];
 
     /**
-     * Установка параметров каталога, с которым предстоит работа
      * @param $catalog_code
      * @param $catalog_data
      */
@@ -35,7 +33,6 @@ class LaximoRequest {
     }
 
     function __construct($ssd = '') {
-        //Инициализирум объект запросов к базе данных Laximo
         $this->_requestOEM = new GuayaquilRequestOEM(
             self::$_config['catalog_code'],
             $ssd,
@@ -44,7 +41,6 @@ class LaximoRequest {
     }
 
     /**
-     * Метод формирует сообщение об ошибке на основе ответа сервиса
      * @return string
      */
     private function _getErrorMessage() {
@@ -59,28 +55,28 @@ class LaximoRequest {
             $error_type = array_shift($error_params);
             switch ($error_type) {
                 case 'E_INVALIDPARAMETER':
-                    $message = "Неверные данные: " . implode(',', $error_params) . '.';
+                    $message = "Invalid params: " . implode(',', $error_params) . '.';
                     break;
                 case 'E_CATALOGNOTEXISTS':
-                    $message = 'Каталог не зарегистрирован в системе: ' . implode(',', $error_params) . '.';
+                    $message = 'Catalog not exists: ' . implode(',', $error_params) . '.';
                     break;
                 case 'E_UNKNOWNCOMMAND':
-                    $message = 'Команда не известна: ' . implode(',', $error_params) . '.';
+                    $message = 'Unknown command: ' . implode(',', $error_params) . '.';
                     break;
                 case 'E_ACCESSDENIED':
-                    $message = 'Доступ к каталогу запрещен: ' . implode(',', $error_params) . '.';
+                    $message = 'Access denied: ' . implode(',', $error_params) . '.';
                     break;
                 case 'E_NOTSUPPORTED':
-                    $message = 'Функция не поддерживается каталогом: ' . implode(',', $error_params) . '.';
+                    $message = 'Function not supported: ' . implode(',', $error_params) . '.';
                     break;
                 case 'E_GROUP_IS_NOT_SEARCHABLE':
-                    $message = "Не удалось совершить поиск в связи со слишком большой нагрузкой.";
+                    $message = "Search was failed. Try later...";
                     break;
                 case 'E_INVALIDREQUEST':
-                    $message = "Неверно сформирован запрос к Веб-сервису.";
+                    $message = "Invalid request";
                     break;
                 case 'E_UNEXPECTED_PROBLEM':
-                    $message = "Неизвестная ошибка";
+                    $message = "Unexpected error";
                     break;
             }
         }
@@ -112,7 +108,6 @@ class LaximoRequest {
 
         call_user_func_array(array($this->_requestOEM, $name), $args);
         $response = $this->_requestOEM->query();
-        //Нет ошибки - возвращаем ответ сервиса
         if (!$this->_requestOEM->error) {
             $response_object = $response ? reset($response) : array();
             return $this->responseObjectWalk($response_object);
@@ -122,7 +117,6 @@ class LaximoRequest {
     }
 
     /**
-     * Добавляем в пул запрос к сервису
      * @param $name - имя метода
      * @param array $args - параметры
      * @return bool
@@ -137,7 +131,6 @@ class LaximoRequest {
     }
 
     /**
-     * Выполняем все, что сохранено в пуле и очищаем его
      * @return array
      * @throws Exception
      */
@@ -151,12 +144,11 @@ class LaximoRequest {
         }
 
         $response = $this->_requestOEM->query();
-        //Нет ошибки - возвращаем ответ сервиса
         $methods = array_keys($this->_pool);
         $this->_pool = array();
 
         if (!$this->_requestOEM->error) {
-            $response_data = array(); //Массив с результатами
+            $response_data = array();
             foreach ($response as $key => $response_object) {
                 $response_data[$methods[$key]] = $this->responseObjectWalk($response_object);
             }
@@ -167,8 +159,6 @@ class LaximoRequest {
     }
 
     /**
-     * Установить ssd можно только переинициализировав объект.
-     * @param $ssd
      * @throws Exception
      */
     public function setSSD($ssd) {
